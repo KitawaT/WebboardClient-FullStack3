@@ -1,6 +1,6 @@
 let posts = [
-  { id: 1, title: "Hello World", content: "โพสต์แรกของฉัน" },
-  { id: 2, title: "React ดีไหม?", content: "กำลังหัดเขียน React อยู่เลย" },
+  { id: 1, title: 'Hello World', content: 'โพสต์แรกของฉัน' },
+  { id: 2, title: 'React ดีไหม?', content: 'กำลังหัดเขียน React อยู่เลย' }
 ];
 
 function findAll() {

@@ -1,36 +1,50 @@
-import {useParams} from 'react-router-dom'
-import {useState, useEffect} from 'react'
-import axios from 'axios'
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 function PostDetailPage() {
-    const {id} = useParams()
-    const [post, setPost] = useState(null)
+  const { id } = useParams();
+  const [post, setPost] = useState(null);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-    const fetchPost = async () => {
-        try {
-            const res = await axios.get(`http://localhost:5173/api/posts/${id}`)
-            // mock data สำหรับทดสอบ
-            // setPost({id: 1, title: "โพสต์ตัวอย่าง 1", content: "เนื้อหาของโพสต์"})
-            setPost(res.data)
-        } catch (err) {
-            alert("โหลดโพสต์ล้มเหลว", err);
-        }
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
     }
 
-    useEffect(() => {
-        fetchPost()
-    }, [id])
+    axios
+      .get(`http://localhost:5000/api/posts/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        setPost(res.data.post);
+        
+      })
+      .catch((err) => {
+        setError("ไม่พบโพสต์");
+        console.error(err);
+      });
+      
+  }, [id]);
 
-    if (!post) {
-        return <div>Loading...</div>
-    }
+  if (error) {
+    return <div>{error}</div>;
+  }
+  if (!post) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div>
-        <h2>{post.title}</h2>
-        <p>{post.content}</p>
+      <h2>{post.title}</h2>
+      <p>{post.content}</p>
     </div>
-  )
+  );
 }
 
-export default PostDetailPage
+export default PostDetailPage;

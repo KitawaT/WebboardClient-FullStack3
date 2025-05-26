@@ -1,6 +1,7 @@
+const mongoose = require('mongoose');
 let posts = [
-  { id: 1, title: 'Hello World', content: 'โพสต์แรกของฉัน' },
-  { id: 2, title: 'React ดีไหม?', content: 'กำลังหัดเขียน React อยู่เลย' }
+  { id: 1, title: 'Hello World', content: 'โพสต์แรกของฉัน', userId: 'mock-id-123' },
+  { id: 2, title: 'React ดีไหม?', content: 'กำลังหัดเขียน React อยู่เลย', userId: 'someone-else' }
 ];
 
 function findAll() {
@@ -17,13 +18,31 @@ function create(post){
   return newPost
 }
 
+function update(id, data){
+  const index = posts.findIndex(p => p.id === id)
+  if (index === -1) return null
+
+  posts[index] ={ ...posts[index], ...data}
+  return posts[index]
+}
+
+function remove(id){
+  const index = posts.findIndex(p => p.id === id)
+  if (index === -1)return false
+
+  posts.splice(index, 1)
+  return true
+}
+
 module.exports = {
   findAll,  
   findById,
   create,
+  update,
+  remove
 }
 
-// const mongoose = require('mongoose');
+
 
 // const postSchema = new mongoose.Schema({
 //     title: {

@@ -16,6 +16,7 @@ function Navbar() {
       </Link>
       {token ? (
         <>
+          <Link to="/new" className="mr-5">New Post</Link>
           <button onClick={handleLogout}>Logout</button>
         </>
       ) : (

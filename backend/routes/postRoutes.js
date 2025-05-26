@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Post = require("../models/Post.js");
+const jwt = require("jsonwebtoken")
+
 
 // GET /api/posts
 router.get("/", (req, res) => {
@@ -20,6 +22,78 @@ router.get('/:id', (req, res) => {
 
   res.json({ post });
 });
+
+// PUT /api/post/:id
+router.put('/:id', (req, res) => {
+  const id = parseInt(req.params.id)
+  const { title, content } = req.body
+
+  const updatedPost = Post.update(id, { title, content })
+
+  if (!updatedPost) {
+    return res.status(404).json({ message: "ไม่พบโพสต์" })
+  }
+
+  res.json({ message: "อัปเดจโพสต์สำเร็จ", post: updatedPost })
+})
+
+// Delete /api/post/:id
+router.delete('/:id', (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1]
+  if (!token){
+    return res.status(401).json({ message:"กรุณา Login ก่อน"})
+  }
+
+  try{
+    const decoded = jwt.verify(token, "secret123")
+    const userId = decoded.userId
+    const id = parseInt(req.params.id)
+
+    const post = Post.findById(id)
+    if (!post){
+      return res.status(404).json({ message: "ไม่พบโพสต์"})
+    }
+
+    //ถ้า userId ไม่ตรงกัน > ไม่ให้ลบ
+    if (post.userId !== userId){
+      return res.status(403).json({ message: "คุณไม่มีสิทธิ์ลบโพสต์นี้"})
+    }
+
+    const deleted = Post.remove(id)
+    res.json({ message: "ลบโพสต์เรียบร้อย" })
+  }catch(err){
+    return res.status(401).json({ message: "token ไม่ถูกต้อง"})
+  }
+ 
+})
+
+router.post("/", (req, res) => {
+  const { title, content } = req.body
+
+  //ดึง token จาก headers
+  const token = req.headers.authorization?.split(" ")[1]
+  if (!token) {
+    return res.status(401).json({ message: "กรุณา Login ก่อน"})
+  }
+
+  try {
+    // decode JWT
+    const decoded = jwt.verify(token, "secret123")
+    const userId = decoded.userId
+
+    if (!title || !content) {
+    return res.status(400).json({ message: "กรุณาระบุ title และ content" })
+  }
+  //เพิ่ม userId ตอนสร้างโพสต์
+  const newPost = Post.create({ title, content, userId})
+  console.log(newPost)
+  
+  res.status(201).json({ post: newPost })
+  } catch (err){
+    return res.status(401).json({message: "token ไม่ถูกต้อง"})
+  }
+  
+})
 
 module.exports = router;
 

@@ -7,6 +7,7 @@ function PostDetailPage() {
   const [post, setPost] = useState(null);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const myUserId = localStorage.getItem("userId"); // 👉 ได้เป็น string
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -23,15 +24,31 @@ function PostDetailPage() {
       })
       .then((res) => {
         setPost(res.data.post);
-        
       })
       .catch((err) => {
         setError("ไม่พบโพสต์");
         console.error(err);
       });
-      
   }, [id]);
 
+  const handleDelete = async () => {
+    const confirmDelate = window.confirm("คุณต้องการลบใช่ไหม ?");
+    if (!confirmDelate) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/api/posts/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      alert("ลบโพสต์เรียบร้อย");
+      navigate("/");
+    } catch (err) {
+      alert("ลบโพสต์ล้มเหลว");
+      console.error(err);
+    }
+  };
   if (error) {
     return <div>{error}</div>;
   }
@@ -43,6 +60,14 @@ function PostDetailPage() {
     <div>
       <h2>{post.title}</h2>
       <p>{post.content}</p>
+      {post.userId === myUserId && (
+        <>
+          <button>แก้ไข</button>
+          <button onClick={handleDelete} className="bg-red-500">
+            ลบโพสต์
+          </button>
+        </>
+      )}
     </div>
   );
 }

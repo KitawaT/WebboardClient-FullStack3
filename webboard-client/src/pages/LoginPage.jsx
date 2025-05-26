@@ -10,11 +10,23 @@ function LoginPage() {
   const haddleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`http://localhost:5173/api/login`, {
+      const res = await axios.post(`http://localhost:5000/api/login`, {
         email,
         password,
       });
-      localStorage.setItem("token", res.data.token);
+      const token = res.data.token;
+      localStorage.setItem("token", token);
+
+      // ถอก JWT เพื่อเก็บ userId
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      console.log("decoded JWT payload:", payload);
+      
+      if (payload.userId) {
+        localStorage.setItem("userId", payload.userId);
+      } else {
+        console.warn("JWT payload ไม่พบ userId");
+      }
+
       navigate("/");
     } catch (err) {
       if (err) console.log(`Login failed.`);
@@ -32,7 +44,7 @@ function LoginPage() {
       />
       <br />
       <input
-        type="password"
+        type="text"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />

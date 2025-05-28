@@ -1,21 +1,24 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 function PostDetailPage() {
   const { id } = useParams();
   const [post, setPost] = useState(null);
-  const [error, setError] = useState("");
   const navigate = useNavigate();
-  const myUserId = localStorage.getItem("userId"); // 👉 ได้เป็น string
+
+  const token = localStorage.getItem("token");
+  let currentUserId = null;
+
+  if (token) {
+    const decoded = jwtDecode(token);
+    currentUserId = decoded.id;
+  }
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
+    if (!token) return;
     axios
       .get(`http://localhost:5000/api/posts/${id}`, {
         headers: {
@@ -23,50 +26,51 @@ function PostDetailPage() {
         },
       })
       .then((res) => {
-        setPost(res.data.post);
+        setPost(res.data)
+        console.log("โพสต์ที่โหลดได้:", res.data);
       })
-      .catch((err) => {
-        setError("ไม่พบโพสต์");
-        console.error(err);
-      });
+      .catch((err) => console.error("โหลดโพสต์ล้มเหลว", err));
   }, [id]);
 
   const handleDelete = async () => {
-    const confirmDelate = window.confirm("คุณต้องการลบใช่ไหม ?");
-    if (!confirmDelate) return;
+    const confirmDelete = confirm("คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้?");
+    if (!confirmDelete) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("กรุณาเข้าสู่ระบบก่อนลบโพสต์");
+      navigate("/login");
+      return;
+    }
 
     try {
-      const token = localStorage.getItem("token");
       await axios.delete(`http://localhost:5000/api/posts/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      alert("ลบโพสต์เรียบร้อย");
+      alert("ลบโพสต์สำเร็จ");
       navigate("/");
     } catch (err) {
-      alert("ลบโพสต์ล้มเหลว");
       console.error(err);
+      alert("ลบโพสต์ไม่สำเร็จ");
     }
   };
-  if (error) {
-    return <div>{error}</div>;
-  }
-  if (!post) {
-    return <div>Loading...</div>;
-  }
 
+  if (!post) return <p>กำลังโหลด...</p>;
+  
   return (
-    <div>
-      <h2>{post.title}</h2>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
       <p>{post.content}</p>
-      {post.userId === myUserId && (
-        <>
-          <button>แก้ไข</button>
-          <button onClick={handleDelete} className="bg-red-500">
-            ลบโพสต์
-          </button>
-        </>
+
+      {post.userId === currentUserId && (
+        <button
+          onClick={handleDelete}
+          className="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          ลบโพสต์
+        </button>
       )}
     </div>
   );

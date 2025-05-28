@@ -1,127 +1,83 @@
 const express = require("express");
 const router = express.Router();
-const Post = require("../models/Post.js");
+// const Post = require("../models/Post.js");
 const jwt = require("jsonwebtoken")
+const postService = require('../services/postService')
+const verifyToken = require("../middleware/auth");
 
-
-// GET /api/posts
-router.get("/", (req, res) => {
-  const posts = Post.findAll()
-  console.log(posts)
-  res.json({ posts });
-});
-
-// GET /api/posts/:id
-router.get('/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const post = Post.findById(id);
-
-  if (!post) {
-    return res.status(404).json({ message: "ไม่พบโพสต์" });
-  }
-
-  res.json({ post });
-});
-
-// PUT /api/post/:id
-router.put('/:id', (req, res) => {
-  const id = parseInt(req.params.id)
-  const { title, content } = req.body
-
-  const updatedPost = Post.update(id, { title, content })
-
-  if (!updatedPost) {
-    return res.status(404).json({ message: "ไม่พบโพสต์" })
-  }
-
-  res.json({ message: "อัปเดจโพสต์สำเร็จ", post: updatedPost })
-})
-
-// Delete /api/post/:id
-router.delete('/:id', (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1]
-  if (!token){
-    return res.status(401).json({ message:"กรุณา Login ก่อน"})
-  }
-
-  try{
-    const decoded = jwt.verify(token, "secret123")
-    const userId = decoded.userId
-    const id = parseInt(req.params.id)
-
-    const post = Post.findById(id)
-    if (!post){
-      return res.status(404).json({ message: "ไม่พบโพสต์"})
-    }
-
-    //ถ้า userId ไม่ตรงกัน > ไม่ให้ลบ
-    if (post.userId !== userId){
-      return res.status(403).json({ message: "คุณไม่มีสิทธิ์ลบโพสต์นี้"})
-    }
-
-    const deleted = Post.remove(id)
-    res.json({ message: "ลบโพสต์เรียบร้อย" })
-  }catch(err){
-    return res.status(401).json({ message: "token ไม่ถูกต้อง"})
-  }
- 
-})
-
-router.post("/", (req, res) => {
-  const { title, content } = req.body
-
-  //ดึง token จาก headers
-  const token = req.headers.authorization?.split(" ")[1]
-  if (!token) {
-    return res.status(401).json({ message: "กรุณา Login ก่อน"})
-  }
-
+// GET all posts
+router.get('/', async (req, res) => {
   try {
-    // decode JWT
-    const decoded = jwt.verify(token, "secret123")
-    const userId = decoded.userId
+    const posts = await postService.getAllPosts();
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    if (!title || !content) {
-    return res.status(400).json({ message: "กรุณาระบุ title และ content" })
+// GET post by id
+router.get('/:id', async (req, res) => {
+  try {
+    const post = await postService.getPostById(req.params.id);
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  //เพิ่ม userId ตอนสร้างโพสต์
-  const newPost = Post.create({ title, content, userId})
-  console.log(newPost)
-  
-  res.status(201).json({ post: newPost })
-  } catch (err){
-    return res.status(401).json({message: "token ไม่ถูกต้อง"})
+});
+
+// POST create new post
+router.post('/', verifyToken, async (req, res) => {
+  try {
+    //ดึง userId จาก Token
+    const postData = {
+      ...req.body,
+      userId: req.user.id,
+    };
+
+    const newPost = await postService.createPost(postData);
+    res.status(201).json(newPost);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
-  
-})
+});
+
+// PUT update post
+router.put('/:id', async (req, res) => {
+  try {
+    const post = await postService.getPostById(req.params.id)
+    if (!post) {
+      return res.status(404).json({message:"ไม่พบโพสต์"})
+    }
+    if (post.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'ไม่มีสิทธิ์แก้ไขโพสต์นี้' })
+    }
+
+    const updatedPost = await postService.updatePost(req.params.id, req.body);
+    res.json(updatedPost);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE post
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const post = await postService.getPostById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "ไม่พบโพสต์" })
+    }
+
+    //ถ้า userId จาก token ไม่ตรง post.userId ห้ามลบ
+    if (post.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'ไม่มีสิทธิ์ลบโพสต์นี้' })
+    }
+
+    await postService.deletePost(req.params.id);
+    res.json({ message: 'ลบโพสต์เรียบร้อย' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
-
-// router.post('/', async (req, res) => {
-//     try {
-//         const title = req.body.title;
-//         const newPost = new Post({
-//             title: title,
-//             content: req.body.content,
-//         });
-//         await newPost.save();
-//         res.status(201).json(newPost);
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Erroe crating post' });
-//     }
-// }
-// );
-
-// router.get('/', async (req, res) => {
-//     try {
-//         const posts = await Post.find().sort({ createDate: -1 });
-//         res.status(200).json(posts);
-//         res.json(posts);
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Error fetching posts' });
-//     }
-// });
-
-// module.exports = router;

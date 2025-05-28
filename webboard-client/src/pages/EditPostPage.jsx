@@ -23,8 +23,9 @@ function EditPostPage() {
             }
         })
         .then(res =>{
-            setTitle(res.data.post.title)
-            setContent(res.data.post.content)
+            setTitle(res.data.title)
+            setContent(res.data.content)
+            console.log("Post data", res.data)
         })
         .catch(()=>{
             setError("ไม่สามารถโหลดโพสต์ได้")

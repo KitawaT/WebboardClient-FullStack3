@@ -12,7 +12,6 @@ function BoardPage() {
       navigate("/login")
       return
     }
-
     axios
     .get("http://localhost:5000/api/posts",{
       headers: {
@@ -20,7 +19,10 @@ function BoardPage() {
       }
     })
     .then((res =>{
-      setPosts(res.data.posts)
+      setPosts(res.data)
+      console.log("API response:", res.data)
+      console.log(posts);
+
     }))
     .catch((err) =>{
       console.error("โหลดโพสล้มเหล้ว", err)
@@ -33,9 +35,9 @@ function BoardPage() {
       <h1 className='text-2xl font-bold mb-4'>รายการกระทู้</h1>
       <ul>
         {posts.map((post)=>(
-          <li key={post.id}>
+          <li key={post._id}>
             <Link
-              to={`/post/${post.id}`}
+              to={`/post/${post._id}`}
               className='text-blue-500 hover:underline'
             >
               {post.title}
